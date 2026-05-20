@@ -1,0 +1,95 @@
+# WiiU-Bypass
+
+Обход DPI-блокировок для Wii U (Aroma). Плагин, который помогает обойти блокировки Cloudflare/Pretendo Network и других сервисов на консоли Wii U.
+
+## Как это работает
+
+Плагин перехватывает сетевые функции Wii U и применяет те же техники обхода DPI, что и **zapret** на ПК:
+
+1. **Фрагментация TCP** — разбивает TLS-пакеты на мелкие куски, чтобы DPI не мог увидеть SNI (домен) и заблокировать соединение
+2. **Кастомный DNS** — резолвит домены Pretendo через 1.1.1.1, обходя отравленные DNS провайдера
+3. **Обход UDP** — обрабатывает игровой трафик (NEX/PRUDP) для Mario Kart 8, Splatoon и других игр
+4. **Стратегии обхода** — 5 режимов работы (как в zapret: SPLIT, MULTISPLIT, FAKEDSPLIT, DELAY, RAW)
+
+## Установка
+
+1. Скачайте `wiiu-bypass.wps`
+2. Скопируйте на SD-карту: `sd:/wiiu/environments/aroma/plugins/wiiu-bypass.wps`
+3. Скопируйте папку `config` в `sd:/wiiu-bypass/` (создайте папку)
+4. Перезагрузите консоль (или перезагрузите Aroma через меню)
+
+При запуске плагин покажет уведомление: **"WiiU-Bypass: ACTIVE"**
+
+## Настройка
+
+Все настройки лежат на SD-карте в файлах:
+
+### `sd:/wiiu-bypass/settings.ini`
+
+```ini
+[Main]
+enabled = 1              # 1 = включен, 0 = выключен
+strategy = 0             # 0=SPLIT, 1=MULTISPLIT, 2=FAKEDSPLIT, 3=DELAY, 4=RAW
+show_notification = 1    # Показывать уведомление при запуске
+
+[TCP]
+fragment_size = 2        # Размер первого фрагмента в байтах
+inter_fragment_delay_us = 1000  # Задержка между фрагментами (мкс)
+split_position = 0       # Смещение для overlapping (мультисплит)
+
+[UDP]
+udp_bypass = 1           # Обход UDP трафика
+udp_fake_port_start = 60000
+udp_fake_port_end = 65535
+
+[DNS]
+doh_server = 1.1.1.1     # DNS сервер для резолва
+doh_port = 443
+```
+
+### `sd:/wiiu-bypass/domains.txt`
+
+Список доменов для обхода. Можно добавлять свои.
+
+## Стратегии обхода
+
+| # | Название | Описание |
+|---|----------|----------|
+| 0 | **SPLIT** | Разделить TLS-пакет на 2 части (1-2 байта + остальное). DPI не видит полный SNI. Работает у большинства. |
+| 1 | **MULTISPLIT** | Отправить перекрывающиеся куски данных. Для агрессивных DPI. |
+| 2 | **FAKEDSPLIT** | Сначала отправить фейковый TLS ClientHello на google.com, потом настоящие данные. |
+| 3 | **DELAY** | Отправлять байт за байтом с большими задержками. Медленно, но надежно. |
+| 4 | **RAW** | Без обхода. Для диагностики. |
+
+**Рекомендация:** начните с `strategy = 0` (SPLIT). Если не работает — пробуйте 2 (FAKEDSPLIT) или 1 (MULTISPLIT).
+
+## Сборка из исходников
+
+### Вариант 1: Docker (рекомендуется)
+
+```bash
+chmod +x build.sh
+./build.sh
+```
+
+### Вариант 2: Локально (нужен devkitPPC)
+
+```bash
+export DEVKITPPC=/opt/devkitpro/devkitPPC
+export DEVKITPRO=/opt/devkitpro
+make
+```
+
+## Список серверов Pretendo Network в domains.txt
+
+- `*.pretendo.cc` — основные сервера (аккаунты, API, BOSS, eShop, Miiverse)
+- `*.pretendo.network` — веб-сайты, форум, документация
+- `status.pretendo.zip` — статус серверов
+- `*.nintendo.net` — оригинальные домены Nintendo (перенаправляются Pretendo)
+- DNS: `88.198.140.154` — SSSL DNS сервер Pretendo
+
+## Известные ограничения
+
+1. **Только PPC-трафик** — системные сервисы (Friends через IOSU) пока не перехватываются
+2. **Fake TLS не на уровне ядра** — в отличие от zapret, фейковые пакеты отправляются через прикладной сокет
+3. **Требуется Aroma** — не работает на других прошивках
