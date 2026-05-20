@@ -21,11 +21,7 @@
 
 ## Настройка
 
-Все настройки лежат на SD-карте в файлах:
-
-### `sd:/wiiu-bypass/settings.ini`
-
-```ini
+```
 [Main]
 enabled = 1              # 1 = включен, 0 = выключен
 strategy = 0             # 0=SPLIT, 1=MULTISPLIT, 2=FAKEDSPLIT, 3=DELAY, 4=RAW
@@ -57,6 +53,7 @@ doh_port = 443
 | 4 | **RAW** | Без обхода. Для диагностики. |
 
 **Рекомендация:** начните с `strategy = 0` (SPLIT). Если не работает — пробуйте 2 (FAKEDSPLIT) или 1 (MULTISPLIT).
+**Для добавления своих "обоходов(ipset)" допишите их в config.c** 
 
 ## Сборка из исходников
 
