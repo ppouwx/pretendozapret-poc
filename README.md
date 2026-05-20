@@ -42,13 +42,9 @@ udp_fake_port_start = 60000
 udp_fake_port_end = 65535
 
 [DNS]
-doh_server = 1.1.1.1     # DNS сервер для резолва
+doh_server = 8.8.8.8     # DNS сервер для резолва
 doh_port = 443
 ```
-
-### `sd:/wiiu-bypass/domains.txt`
-
-Список доменов для обхода. Можно добавлять свои.
 
 ## Стратегии обхода
 
