@@ -25,7 +25,7 @@ ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map)
 
 # Core libraries
-LIBS	:= -lwups -lwut -lnsysnet -lnssl
+LIBS	:= -lwups -lwut -lnsysnet -lnssl -lcoreinit
 
 # Optional: uncomment if NotificationModule is installed (dkp-pacman -S wiiu-notifications)
 # LIBS += -lnotifications

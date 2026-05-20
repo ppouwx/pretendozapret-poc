@@ -1,4 +1,5 @@
 #include "config.h"
+#include "logger.h"
 #include <stdio.h>
 #include <string.h>
 #include <coreinit/thread.h>
@@ -21,6 +22,8 @@ static const config_t DEFAULT_CONFIG = {
     .udp_fake_port_end = 65535,
     .doh_server = "1.1.1.1",
     .doh_port = 443,
+    .log_enabled = true,
+    .log_level = LOG_INFO,
 };
 
 void Config_Init(void) {
@@ -55,6 +58,10 @@ bool Config_Load(void) {
                 "[DNS]\n"
                 "doh_server = 1.1.1.1\n"
                 "doh_port = 443\n"
+                "\n"
+                "[Log]\n"
+                "log_enabled = 1\n"
+                "log_level = 1\n"
             );
             fclose(f);
         }
@@ -123,10 +130,19 @@ bool Config_Load(void) {
             if (strcmp(key, "doh_server") == 0) strncpy(g_config.doh_server, val, sizeof(g_config.doh_server) - 1);
             else if (strcmp(key, "doh_port") == 0) g_config.doh_port = atoi(val);
         }
+        else if (strcmp(section, "Log") == 0) {
+            if (strcmp(key, "log_enabled") == 0) g_config.log_enabled = atoi(val) != 0;
+            else if (strcmp(key, "log_level") == 0) g_config.log_level = atoi(val);
+        }
     }
 
     fclose(f);
     Config_LoadDomainList();
+
+    // Apply log settings to global logger state
+    g_log_enabled = g_config.log_enabled;
+    g_log_min_level = (log_level_t)g_config.log_level;
+
     return true;
 }
 
@@ -153,7 +169,11 @@ bool Config_Save(void) {
         "\n"
         "[DNS]\n"
         "doh_server = %s\n"
-        "doh_port = %u\n",
+        "doh_port = %u\n"
+        "\n"
+        "[Log]\n"
+        "log_enabled = %d\n"
+        "log_level = %d\n",
         g_config.enabled ? 1 : 0,
         (int)g_config.strategy,
         g_config.show_notification ? 1 : 0,
@@ -164,7 +184,9 @@ bool Config_Save(void) {
         g_config.udp_fake_port_start,
         g_config.udp_fake_port_end,
         g_config.doh_server,
-        g_config.doh_port
+        g_config.doh_port,
+        g_config.log_enabled ? 1 : 0,
+        g_config.log_level
     );
 
     fclose(f);

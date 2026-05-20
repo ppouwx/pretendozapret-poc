@@ -10,6 +10,7 @@
 #include "dns.h"
 #include "netfilter.h"
 #include "ui.h"
+#include "logger.h"
 
 WUPS_PLUGIN_NAME("WiiU-Bypass");
 WUPS_PLUGIN_DESCRIPTION("DPI bypass for blocked services on Wii U");
@@ -67,11 +68,15 @@ int getaddrinfo(const char *node, const char *service,
 
 INITIALIZE_PLUGIN() {
     Config_Init();
+    Log_Init();
     UI_Init();
 }
 
 ON_APPLICATION_START() {
     Config_Load();
+    Log_Info("MAIN", "WiiU-Bypass v1.0 starting");
+    Log_Info("MAIN", "Strategy: %d, enabled: %d", g_config.strategy, g_config.enabled);
+
     DNS_Init();
     NetFilter_Init();
 
@@ -92,11 +97,14 @@ ON_APPLICATION_START() {
 }
 
 ON_APPLICATION_ENDS() {
+    Log_Info("MAIN", "Application ended, bypass paused");
     NetFilter_Deinit();
     DNS_Deinit();
 }
 
 DEINITIALIZE_PLUGIN() {
+    Log_Info("MAIN", "WiiU-Bypass shutting down");
     Config_Save();
     UI_Deinit();
+    Log_Deinit();
 }

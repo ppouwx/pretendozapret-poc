@@ -29,6 +29,8 @@ typedef struct {
     uint16_t udp_fake_port_end;
     char doh_server[64];
     uint16_t doh_port;
+    bool log_enabled;
+    int log_level;
 } config_t;
 
 extern config_t g_config;

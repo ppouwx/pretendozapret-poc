@@ -1,5 +1,6 @@
 #include "dns.h"
 #include "config.h"
+#include "logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -114,6 +115,7 @@ static bool resolve_direct_udp(const char *domain, uint32_t *out_ip) {
     int qlen = sizeof(dns_header_t) + name_len + sizeof(dns_question_t);
 
     if (sendto(sock, buf, qlen, 0, (struct sockaddr *)&server, sizeof(server)) < 0) {
+        Log_Warn("DNS", "sendto() failed for %s", domain);
         close(sock);
         return false;
     }
@@ -166,6 +168,9 @@ static bool resolve_direct_udp(const char *domain, uint32_t *out_ip) {
 
         if (atype == 1 && rdlen == 4 && offset + 4 <= rlen) {
             *out_ip = *(uint32_t *)(resp + offset);
+            uint8_t *ipb = (uint8_t *)(resp + offset);
+            Log_Info("DNS", "%s -> %d.%d.%d.%d", domain,
+                ipb[0], ipb[1], ipb[2], ipb[3]);
             return true;
         }
 
@@ -209,6 +214,9 @@ bool DNS_HandleGetAddrInfo(const char *node, void *hints, void *res) {
 
     uint32_t cached_ip;
     if (cache_lookup(node, &cached_ip)) {
+        uint8_t *ipb = (uint8_t *)&cached_ip;
+        Log_Debug("DNS", "%s -> %d.%d.%d.%d (cached)", node,
+            ipb[0], ipb[1], ipb[2], ipb[3]);
         return false;
     }
 

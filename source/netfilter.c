@@ -1,5 +1,6 @@
 #include "netfilter.h"
 #include "config.h"
+#include "logger.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -130,6 +131,18 @@ int NetFilter_Connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen
         g_socket_table[slot].tracked = true;
     }
 
+    if (slot >= 0) {
+        char ip_str[16];
+        snprintf(ip_str, sizeof(ip_str), "%d.%d.%d.%d",
+            (g_socket_table[slot].dest_ip >> 24) & 0xFF,
+            (g_socket_table[slot].dest_ip >> 16) & 0xFF,
+            (g_socket_table[slot].dest_ip >> 8) & 0xFF,
+            g_socket_table[slot].dest_ip & 0xFF);
+
+        Log_Debug("TCP", "connect(sock=%d) -> %s:%d",
+            sockfd, ip_str, g_socket_table[slot].dest_port);
+    }
+
     return real_connect ? real_connect(sockfd, addr, addrlen) : -1;
 }
 
@@ -148,6 +161,11 @@ ssize_t NetFilter_Send(int sockfd, const void *buf, size_t len, int flags) {
     if (entry->dest_port != 443 && entry->dest_port != 80 && entry->dest_port != 0) {
         return real_send(sockfd, buf, len, flags);
     }
+
+    const char *strat_names[] = {"SPLIT", "MULTISPLIT", "FAKEDSPLIT", "DELAY", "RAW"};
+    Log_Debug("TCP", "send(sock=%d) len=%zu port=%d strat=%s",
+        sockfd, len, entry->dest_port,
+        strat_names[g_config.strategy < STRATEGY_COUNT ? g_config.strategy : STRATEGY_RAW]);
 
     switch (g_config.strategy) {
     case STRATEGY_SPLIT:
@@ -185,6 +203,8 @@ ssize_t NetFilter_SendTo(int sockfd, const void *buf, size_t len, int flags,
     if (port < g_config.udp_fake_port_start || port > g_config.udp_fake_port_end) {
         return real_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
     }
+
+    Log_Debug("UDP", "sendto(sock=%d) len=%zu port=%d", sockfd, len, port);
 
     uint8_t fake_padding[32] = {0};
     real_sendto(sockfd, fake_padding, sizeof(fake_padding), flags, dest_addr, addrlen);
